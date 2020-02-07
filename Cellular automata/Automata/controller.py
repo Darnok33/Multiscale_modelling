@@ -24,7 +24,14 @@ class Controller (QMainWindow, Ui_MainWindow):
         self.toolButton_3.clicked.connect(lambda: self.import_bmp())
         self.toolButton_4.clicked.connect(lambda: self.import_txt())
         self.pushButton_4.clicked.connect(lambda: self.add_inclusion(self.comboBox_3))
-
+        self.pushButton_5.clicked.connect(lambda: self.simulation_MC())
+        self.pushButton_6.clicked.connect(lambda: self.energy_distribution())
+        self.pushButton_7.clicked.connect(lambda: self.back_to_energy())
+        self.pushButton_8.clicked.connect(lambda: self.back_to_microstructure())
+        self.pushButton_9.clicked.connect(lambda: self.simulation_recrystalisation(self.spinBox_9.value(),self.comboBox_4.currentText()))
+        self.pushButton_10.clicked.connect(lambda: self.clean_grains())
+        self.pushButton_11.clicked.connect(lambda:self.init_MC(self.spinBox.value()))
+        self.clean = False
     def showdialog(self):
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Critical)
@@ -46,16 +53,35 @@ class Controller (QMainWindow, Ui_MainWindow):
         self.new_board = Board.Board(self.width,self.height)
         self.widget.set_Widget(self.width, self.height)
 
+    def clean_grains(self):
+        self.new_board.clean_grains()
+        self.new_board.old_board = self.new_board.board_copy(self.new_board.cells)
+        self.widget.set_Widget(self.width,self.height, self.new_board.cells)
+        self.clean = True
+
+    def init_MC(self, amountofgrains):
+        self.new_board.init_MC(amountofgrains)
+        self.widget.set_Widget(self.width, self.height, self.new_board.cells)
 
     def nucleating_init(self, number_of_grains, set_width, set_height):
-        self.grid_size(set_width, set_height)
-        if self.inclusion_before is True:
-            self.new_board.add_inclusion(self.spinBox_2.value(), self.spinBox_3.value(), self.comboBox.currentText(), self.comboBox_3.currentText())
-        self.numberofgrains = number_of_grains
-        self.grains_number_verify(number_of_grains)
-        print(self.new_board.cells_available)
-        self.new_board.initial_grains_onboard(self.numberofgrains)
-        self.widget.set_Widget(self.width, self.height, self.new_board.cells)
+        if self.clean is False:
+            self.grid_size(set_width, set_height)
+            if self.inclusion_before is True:
+                self.new_board.add_inclusion(self.spinBox_2.value(), self.spinBox_3.value(), self.comboBox.currentText(), self.comboBox_3.currentText())
+            self.numberofgrains = number_of_grains
+            self.grains_number_verify(number_of_grains)
+            print(self.new_board.cells_available)
+            self.new_board.initial_grains_onboard(self.numberofgrains)
+            self.widget.set_Widget(self.width, self.height, self.new_board.cells)
+        else:
+            print('cos')
+            if self.inclusion_before is True:
+                self.new_board.add_inclusion(self.spinBox_2.value(), self.spinBox_3.value(), self.comboBox.currentText(), self.comboBox_3.currentText())
+            self.numberofgrains = number_of_grains
+            print(self.new_board.cells_available)
+            self.new_board.initial_grains_onboard(self.numberofgrains)
+            self.widget.set_Widget(self.width, self.height, self.new_board.cells)
+
     def grains_number_verify(self, numberofgrains):
         self.numberofgrains = numberofgrains
         if numberofgrains > self.new_board.cells_available:
@@ -63,12 +89,14 @@ class Controller (QMainWindow, Ui_MainWindow):
 
 
     def grains_growth(self):
-        self.new_board.grains_process()
-        #self.new_board.grain_determine_border()
+        if self.comboBox_2.currentText() == 'CA':
+            self.new_board.grains_process()
+        elif self.comboBox_2.currentText() == 'MC':
+            self.simulation_MC()
         if self.inclusion_after is True:
             self.new_board.add_inclusion(self.spinBox_2.value(), self.spinBox_3.value(), self.comboBox.currentText(), self.comboBox_3.currentText())
+        self.new_board.grain_determine_border(self.spinBox_10.value())
         self.widget.set_Widget(self.width,self.height, self.new_board.cells)
-
 
 
     def add_inclusion(self, timeofadd):
@@ -78,54 +106,28 @@ class Controller (QMainWindow, Ui_MainWindow):
             self.inclusion_after = True
 
 
+    def simulation_MC(self):
+        self.new_board.iterations = self.spinBox_6.value()
+        self.new_board.simulation_MC()
+        self.widget.set_Widget(self.width,self.height, self.new_board.cells)
 
+    def simulation_recrystalisation(self, amountofgrains, mode):
+        self.new_board.iterations = self.spinBox_6.value()
+        self.new_board.simulation_recrystalisation(amountofgrains, mode)
+        self.new_board.without_grains_cells = self.new_board.board_copy(self.new_board.cells)
+        self.widget.set_Widget(self.width,self.height, self.new_board.cells)
 
+    def energy_distribution(self):
+        self.new_board.without_grains_cells = self.new_board.board_copy(self.new_board.cells)
+        self.new_board.energy_distribution(self.spinBox_7.value(), self.spinBox_8.value(), self.spinBox_10.value())
+        self.widget.set_Widget(self.width,self.height, self.new_board.cells_energy)
 
+    def back_to_microstructure(self):
+        self.new_board.cells = self.new_board.without_grains_cells
+        self.widget.set_Widget(self.width, self.height, self.new_board.cells)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    def back_to_energy(self):
+        self.widget.set_Widget(self.width, self.height, self.new_board.cells_energy)
 
 
 
@@ -173,6 +175,7 @@ class Controller (QMainWindow, Ui_MainWindow):
             self.grid_size(self.width, self.height)
             cells_type = list(image.getdata())
             self.new_board.cells = np.array(cells_type).reshape((self.width, self.height, 3))
+            self.old_board = self.board_copy(self.cells)
             self.widget.set_Widget(self.width, self.height, self.new_board.cells)
 
     def import_txt(self):
@@ -191,6 +194,8 @@ class Controller (QMainWindow, Ui_MainWindow):
                     self.grid_size(self.width, self.height)
                 else:
                     self.new_board.cells[int(string_list[1]), int(string_list[0])] = list(map(int, string_list[2].split(',' )))
+                self.old_board = self.board_copy(self.cells)
+
         self.widget.set_Widget(self.width, self.height, self.new_board.cells)
 
 

@@ -11,8 +11,8 @@ class Ui_promotedWidget(object):
 class promotedWidget(QtGui.QWidget, Ui_promotedWidget):
     def __init__(self, parent = None):
         QtGui.QWidget.__init__(self, parent)
-        self.widget_x = 300
-        self.widget_y = 300
+        self.widget_x = 100
+        self.widget_y = 100
         self.colors = [255,255,255]
         self.setupWUi(self)
 
